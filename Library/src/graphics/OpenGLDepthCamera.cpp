@@ -55,7 +55,10 @@ OpenGLDepthCamera::OpenGLDepthCamera(glm::vec3 eyePosition, glm::vec3 direction,
     range.y = maxDepth;
     usesRanges = useRanges;
     linearDepthPBO = 0;
-    
+    tempCaptureTime_ = 0.0;
+    pendingCaptureTime_ = 0.0;
+    captureTime_ = 0.0;
+
     SetupCamera(eyePosition, direction, cameraUp);
     UpdateTransform();
     
@@ -134,10 +137,21 @@ void OpenGLDepthCamera::SetupCamera(glm::vec3 _eye, glm::vec3 _dir, glm::vec3 _u
     tempDir = _dir;
     tempEye = _eye;
     tempUp = _up;
+    // tempCaptureTime_ is set separately by SetPendingCaptureTime() from the physics thread.
+}
+
+void OpenGLDepthCamera::SetPendingCaptureTime(double t)
+{
+    tempCaptureTime_ = t;
 }
 
 void OpenGLDepthCamera::UpdateTransform()
 {
+    // Commit the physics-thread timestamp together with its matching pose.
+    // tempCaptureTime_ was written by SetPendingCaptureTime() on the physics thread
+    // when SetupCamera() was called, so it always matches tempEye/dir/up — no GL-thread
+    // race against getSimulationTime().
+    pendingCaptureTime_ = tempCaptureTime_;
     eye = tempEye;
     dir = tempDir;
     up = tempUp;
@@ -151,11 +165,16 @@ void OpenGLDepthCamera::UpdateTransform()
         if(src)
         {
             camera->NewDataReady(src, idx);
-            glUnmapBuffer(GL_PIXEL_PACK_BUFFER); //Release pointer to the mapped buffer
+            glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
         }
         glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
         newData = false;
     }
+}
+
+double OpenGLDepthCamera::getCaptureTime() const
+{
+    return captureTime_;
 }
 
 void OpenGLDepthCamera::SetupCamera()
@@ -349,6 +368,7 @@ void OpenGLDepthCamera::DrawLDR(GLuint destinationFBO, bool updated)
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, NULL);
         glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
         OpenGLState::UnbindTexture(TEX_POSTPROCESS1);
+        captureTime_ = pendingCaptureTime_;
         newData = true;
     }
 }

@@ -26,6 +26,7 @@
 #include "sensors/vision/DepthCamera.h"
 
 #include "core/GraphicalSimulationApp.h"
+#include "core/SimulationManager.h"
 #include "graphics/OpenGLPipeline.h"
 #include "graphics/OpenGLContent.h"
 #include "graphics/OpenGLDepthCamera.h"
@@ -42,6 +43,7 @@ DepthCamera::DepthCamera(std::string uniqueName, unsigned int resolutionX, unsig
     newDataCallback = nullptr;
     imageData = nullptr;
     glCamera = nullptr;
+    lastCaptureTime_ = Scalar(0);
 }
 
 DepthCamera::~DepthCamera()
@@ -96,6 +98,11 @@ void DepthCamera::SetupCamera(const Vector3& eye, const Vector3& dir, const Vect
     glm::vec3 dir_ = glm::vec3((GLfloat)dir.x(), (GLfloat)dir.y(), (GLfloat)dir.z());
     glm::vec3 up_ = glm::vec3((GLfloat)up.x(), (GLfloat)up.y(), (GLfloat)up.z());
     glCamera->SetupCamera(eye_, dir_, up_);
+    // Snapshot sim-time here on the physics thread, atomically with the pose commit above.
+    // The GL thread reads this via tempCaptureTime_ in UpdateTransform(), avoiding a race
+    // where getSimulationTime() on the GL thread would return a later physics step's time.
+    Scalar t = SimulationApp::getApp()->getSimulationManager()->getSimulationTime(true);
+    glCamera->SetPendingCaptureTime((double)t);
 }
 
 void DepthCamera::InstallNewDataHandler(std::function<void(DepthCamera*)> callback)
@@ -107,10 +114,16 @@ void DepthCamera::NewDataReady(void* data, unsigned int index)
 {
     if(newDataCallback != nullptr)
     {
+        lastCaptureTime_ = glCamera->getCaptureTime();
         imageData = (GLfloat*)data;
         newDataCallback(this);
         imageData = nullptr;
     }
+}
+
+Scalar DepthCamera::getLastCaptureTime() const
+{
+    return lastCaptureTime_;
 }
 
 void DepthCamera::InternalUpdate(Scalar dt)

@@ -73,7 +73,10 @@ namespace sf
          \param index the id of the OpenGL camera uploading the data
          */
         void NewDataReady(void* data, unsigned int index = 0) override;
-        
+
+        //! Returns the simulation time [s] at which the last delivered frame's pose was committed.
+        Scalar getLastCaptureTime() const;
+
         //! A method used to set a callback function called when new data is available.
         /*!
          \param callback a function to be called
@@ -109,6 +112,7 @@ namespace sf
         GLfloat* imageData;
         glm::vec2 depthRange;
         GLfloat noiseStdDev;
+        Scalar lastCaptureTime_;  // simulation time [s] of the last delivered frame's pose commit
         std::function<void(DepthCamera*)> newDataCallback;
     };
 }

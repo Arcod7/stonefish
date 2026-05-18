@@ -119,6 +119,9 @@ namespace sf
 
         //! A method that flags the camera as needing update.
         void Update();
+
+        //! Returns the simulation time [s] at which the last delivered frame's pose was committed.
+        double getCaptureTime() const;
         
         //! A method that informs if the camera needs update.
         bool needsUpdate() override;
@@ -135,6 +138,10 @@ namespace sf
          \param depthStdDev the standard deviation of the depth measurement at 1m
          */
         void setNoise(GLfloat depthStdDev);
+
+        //! Called by the physics thread when the camera pose is committed; snapshots the sim-time
+        //! so the GL thread never needs to query getSimulationTime() directly.
+        void SetPendingCaptureTime(double t);
 
         //! A method returning the type of the view.
         ViewType getType() const override;
@@ -158,6 +165,7 @@ namespace sf
         glm::vec3 tempEye;
         glm::vec3 tempDir;
         glm::vec3 tempUp;
+        double tempCaptureTime_;     // physics-thread snapshot; mirrors tempEye/dir/up lifecycle
         glm::mat4 projection;
         glm::vec2 fov;
         bool _needsUpdate;
@@ -171,6 +179,8 @@ namespace sf
         GLuint linearDepthTex;
         GLuint linearDepthFBO;
         GLuint linearDepthPBO;
+        double pendingCaptureTime_;  // GL-thread copy of tempCaptureTime_, committed with eye/dir/up
+        double captureTime_;         // frozen in DrawLDR() when pixels are read to PBO
         static GLSLShader** depthCameraOutputShader;
         static GLSLShader* depthVisualizeShader;
     };
