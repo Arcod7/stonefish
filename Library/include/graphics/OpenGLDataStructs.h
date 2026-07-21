@@ -20,7 +20,7 @@
 //  Stonefish
 //
 //  Created by Patryk Cieslak on 17/11/2018.
-//  Copyright (c) 2018-2025 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2018-2026 Patryk Cieslak. All rights reserved.
 //
 
 #pragma once
@@ -128,13 +128,10 @@ namespace sf
             normal = glm::vec3(0.f);
         }
 
-        friend bool operator==(const Vertex& lhs, const Vertex& rhs)
+        bool operator==(const Vertex& other) const
         {
-            if(lhs.pos == rhs.pos 
-                && lhs.normal == rhs.normal)
-                return true;
-            return false;
-        };
+            return pos == other.pos && normal == other.normal;
+        }
     };
 
     //! A structure containing single vertex data.
@@ -149,14 +146,11 @@ namespace sf
             tangent = glm::vec3(0.f);
         }
         
-        friend bool operator==(const TexturableVertex& lhs, const TexturableVertex& rhs)
+        bool operator==(const TexturableVertex& other) const
         {
-            if(lhs.pos == rhs.pos 
-               && lhs.normal == rhs.normal 
-               && lhs.uv == rhs.uv)
-               return true;
-            return false;
-        };
+            return pos == other.pos && normal == other.normal 
+                && uv == other.uv && tangent == other.tangent;
+        }
     };
 
     //! A structure containing single face data.
@@ -164,12 +158,12 @@ namespace sf
     {
         GLuint vertexID[3];
         
-        friend bool operator==(const Face& lhs, const Face& rhs)
+        bool operator==(const Face& other) const
         {
-            if(lhs.vertexID[0] == rhs.vertexID[0] && lhs.vertexID[1] == rhs.vertexID[1] && lhs.vertexID[2] == rhs.vertexID[2])
-                return true;
-            return false;
-        };
+            return vertexID[0] == other.vertexID[0]
+                && vertexID[1] == other.vertexID[1]
+                && vertexID[2] == other.vertexID[2];
+        }
     };
     
     //! A structure containing mesh data.

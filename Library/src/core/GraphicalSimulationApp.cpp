@@ -27,7 +27,6 @@
 
 #include <chrono>
 #include <thread>
-#include <omp.h>
 #include "core/SimulationManager.h"
 #include "core/Robot.h"
 #include "graphics/OpenGLState.h"
@@ -1011,8 +1010,9 @@ void GraphicalSimulationApp::ResumeSimulation()
 
 void GraphicalSimulationApp::StopSimulation()
 {
-    SimulationApp::StopSimulation();
-	selectedEntity = std::make_pair(nullptr, -1);
+	SimulationApp::StopSimulation();
+
+    selectedEntity = std::make_pair(nullptr, -1);
 	trackballCenter = nullptr;
     
     if (autostep_ && simulationThread != nullptr)
@@ -1021,12 +1021,14 @@ void GraphicalSimulationApp::StopSimulation()
         SDL_WaitThread(simulationThread, &status);
         simulationThread = nullptr;
     }
+
+    physicsThreadPool_.reset();
 }
 
 void GraphicalSimulationApp::StepSimulation()
 {
     SimulationApp::StepSimulation();
-        
+
     if(getGLPipeline()->isDrawingQueueEmpty())
     {
         SDL_LockMutex(getGLPipeline()->getDrawingQueueMutex());
@@ -1100,9 +1102,6 @@ int GraphicalSimulationApp::RunSimulation(void* data)
 
     simManager->setCallSimulationStepCompleted(simApp.timeStep_ == Scalar(0));
 
-    int maxThreads = std::max(omp_get_max_threads()/2, 1);
-    omp_set_num_threads(maxThreads);
-    
     while(simApp.getState() == SimulationState::RUNNING)
     {
         simApp.StepSimulation();
