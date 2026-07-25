@@ -70,8 +70,11 @@ namespace sf
         //! A method to glue the trackball to a moving body.
         /*!
          \param ent a pointer to a moving body
+         \param followOrientation if true, the view also turns as the body rotates,
+                on top of any manual mouse orbiting (chase-cam behaviour); if false
+                (default) only the orbit centre follows, as before
          */
-        void GlueToMoving(MovingEntity* ent);
+        void GlueToMoving(MovingEntity* ent, bool followOrientation = false);
         
         //! A method saving the new centre for update.
         void UpdateCenterPos();
@@ -131,7 +134,10 @@ namespace sf
         GLfloat calculateZ(GLfloat x, GLfloat y);
         
         MovingEntity* holdingEntity;
-        
+        bool followEntityOrientation;
+        bool hasLastEntityRotation;
+        glm::quat lastEntityRotation;
+
         glm::vec3 tempCenter;
         glm::mat4 trackballTransform;
         glm::quat rotation;

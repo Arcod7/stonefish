@@ -51,6 +51,8 @@ OpenGLTrackball::OpenGLTrackball(glm::vec3 centerPosition, GLfloat orbitRadius, 
     transMode = false;
     continuous = true;
     holdingEntity = nullptr;
+    followEntityOrientation = false;
+    hasLastEntityRotation = false;
 
     outlineShader[0] = new GLSLShader("outline.frag");
     outlineShader[0]->AddUniform("color", ParameterType::VEC4);
@@ -102,8 +104,24 @@ void OpenGLTrackball::UpdateCenterPos()
 {
     if(holdingEntity != nullptr)
     {
-        Vector3 org = holdingEntity->getOTransform().getOrigin();
+        Transform trans = holdingEntity->getOTransform();
+        Vector3 org = trans.getOrigin();
         tempCenter = glm::vec3((GLfloat)org.x(), (GLfloat)org.y(), (GLfloat)org.z());
+
+        if(followEntityOrientation)
+        {
+            Quaternion q = trans.getRotation();
+            glm::quat entityRotation((GLfloat)q.w(), (GLfloat)q.x(), (GLfloat)q.y(), (GLfloat)q.z());
+
+            //Apply only the per-frame orientation delta, layered on the existing view, so we don't need to know the entity's local forward/up axes.
+            if(hasLastEntityRotation)
+            {
+                glm::quat delta = entityRotation * glm::inverse(lastEntityRotation);
+                rotation = rotation * glm::inverse(delta);
+            }
+            lastEntityRotation = entityRotation;
+            hasLastEntityRotation = true;
+        }
     }
 }
 
@@ -189,9 +207,11 @@ void OpenGLTrackball::MoveCenter(glm::vec3 step)
     center += step;
 }
 
-void OpenGLTrackball::GlueToMoving(MovingEntity* ent)
+void OpenGLTrackball::GlueToMoving(MovingEntity* ent, bool followOrientation)
 {
     holdingEntity = ent;
+    followEntityOrientation = followOrientation;
+    hasLastEntityRotation = false;
 
     //Clear ocean quadtree to avoid holes in the ocean rendering because of the sudden jump of camera origin
     Ocean* ocean = ((GraphicalSimulationApp*)SimulationApp::getApp())->getSimulationManager()->getOcean();
