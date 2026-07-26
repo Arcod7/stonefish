@@ -255,9 +255,7 @@ Mesh* LoadOBJ(const std::string& path, GLfloat scale)
         }
         else // No normals
         {
-            for (size_t i=0; i<pmesh->vertices.size(); ++i)
-                memcpy(&pmesh->vertices[i].pos.x, &objData.attributes.positions[i*3], sizeof(glm::vec3));
-                
+            //Positions were already written scaled above; rewriting them here would drop the scale.
             for (size_t i=0; i<objData.shapes.size(); ++i) // Fuse all shapes together
             {
                 for (size_t h=0; h<objData.shapes[i].mesh.indices.size()/3; ++h) // 3 vertices per face
